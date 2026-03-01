@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.12
+
+- Feature: Terminal Access (P1) - Monitor and interact with terminal output from mobile.
+- Feature: Changes Overview (P1) - View and manage pending file changes with a dedicated FAB.
+- Feature: Artifacts Panel (P2) - Browse generated artifacts through a dedicated mobile view.
+- UI: Improved native controls layout and responsiveness on mobile.
+
 ## 1.0.11
 
 - Fix: Resolved `SyntaxError` in snapshot capture script affecting connection.

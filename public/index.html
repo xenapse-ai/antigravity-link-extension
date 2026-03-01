@@ -424,15 +424,23 @@
         <!-- Floating Scroll FAB -->
         <button class="fab" id="scrollToBottom">↓</button>
 
-        <!-- Top Layer: Scrapers (Mode, Model) -->
+        <!-- Top Layer: Control Chips -->
         <div class="dock-controls" id="nativeStatusBar">
-            <div id="modeChip" class="control-chip">
+            <div id="modeChip" class="control-chip" style="display:none">
                 <span class="label">MODE</span>
                 <span id="modeVal">...</span>
             </div>
-            <div id="modelChip" class="control-chip">
+            <div id="modelChip" class="control-chip" style="display:none">
                 <span class="label">MODEL</span>
                 <span id="modelVal">...</span>
+            </div>
+            <div id="terminalChip" class="control-chip" style="display:none">
+                <span class="label">TERMINAL</span>
+                <span id="terminalVal">View</span>
+            </div>
+            <div id="artifactsChip" class="control-chip" style="display:none">
+                <span class="label">ARTIFACTS</span>
+                <span id="artifactsVal">0</span>
             </div>
         </div>
 
@@ -488,6 +496,58 @@
                 style="display:flex; flex-direction:column; gap:10px; max-height:40vh; overflow-y:auto;">
                 <!-- Injected -->
             </div>
+        </div>
+    </div>
+
+    <button id="changesFab" class="fab" style="bottom: 190px; background: #10b981; display: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+        <span id="changesBadge" style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid var(--bg-deep);">0</span>
+    </button>
+
+    <div id="changesSheet" class="bottom-sheet">
+        <div class="sheet-header">
+            <h3 class="sheet-title">Pending Changes</h3>
+            <button id="changesClose" class="sheet-close" style="background:transparent; border:none; color:#fff; font-size:24px;">&times;</button>
+        </div>
+        <div id="changesList" class="sheet-list" style="padding: 16px;">
+            <!-- Changes items -->
+        </div>
+        <div id="changesActions" style="padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 12px;">
+            <button id="rejectAllBtn" style="flex: 1; padding: 12px; background: hsla(0, 72%, 51%, 0.1); border: 1px solid #ef4444; color: #ef4444; border-radius: 12px; font-weight: bold;">Reject All</button>
+            <button id="acceptAllBtn" style="flex: 1; padding: 12px; background: #10b981; border: none; color: white; border-radius: 12px; font-weight: bold;">Accept All</button>
+        </div>
+    </div>
+
+    <div id="terminalSheet" class="bottom-sheet">
+        <div class="sheet-header">
+            <h3 class="sheet-title">Terminal</h3>
+            <button id="terminalClose" class="sheet-close" style="background:transparent; border:none; color:#fff; font-size:24px;">&times;</button>
+        </div>
+        <div id="terminalContent" class="sheet-list" style="background: #000; color: #fff; font-family: monospace; padding: 10px; font-size: 12px; white-space: pre-wrap; overflow-y: auto; flex: 1; min-height: 200px;">
+            <!-- Terminal content injected -->
+        </div>
+        <div class="dock-input-row" style="border-top: 1px solid var(--border); background: var(--bg-dock);">
+            <div class="input-bubble">
+                <input type="text" id="terminalInput" placeholder="Run command..." style="background:transparent; border:none; outline:none; color:#fff; font-size:14px; width:100%;">
+            </div>
+            <button id="terminalSendBtn" class="action-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="artifactsSheet" class="bottom-sheet">
+        <div class="sheet-header">
+            <h3 class="sheet-title">Artifacts</h3>
+            <button id="artifactsClose" class="sheet-close" style="background:transparent; border:none; color:#fff; font-size:24px;">&times;</button>
+        </div>
+        <div id="artifactsList" class="sheet-list">
+            <!-- Artifacts items -->
         </div>
     </div>
 
@@ -1446,10 +1506,125 @@
         const sheetClose = document.getElementById('sheetClose');
 
         let lastControlsHtml = '';
-        let currentModeSelector = '';
-        let currentModelSelector = '';
         let currentModeText = '';
         let currentModelText = '';
+        let currentModeSelector = '';
+        let currentModelSelector = '';
+
+        const terminalChip = document.getElementById('terminalChip');
+        const terminalSheet = document.getElementById('terminalSheet');
+        const terminalContent = document.getElementById('terminalContent');
+        const terminalClose = document.getElementById('terminalClose');
+        const terminalInput = document.getElementById('terminalInput');
+        const terminalSendBtn = document.getElementById('terminalSendBtn');
+        let currentTerminalSelector = '';
+
+        const changesFab = document.getElementById('changesFab');
+        const changesBadge = document.getElementById('changesBadge');
+        const changesSheet = document.getElementById('changesSheet');
+        const changesList = document.getElementById('changesList');
+        const changesClose = document.getElementById('changesClose');
+        const acceptAllBtn = document.getElementById('acceptAllBtn');
+        const rejectAllBtn = document.getElementById('rejectAllBtn');
+        let currentAcceptSelector = '';
+        let currentRejectSelector = '';
+
+        const artifactsChip = document.getElementById('artifactsChip');
+        const artifactsVal = document.getElementById('artifactsVal');
+        const artifactsSheet = document.getElementById('artifactsSheet');
+        const artifactsList = document.getElementById('artifactsList');
+        const artifactsClose = document.getElementById('artifactsClose');
+
+        // Event Listeners
+        if (changesFab) changesFab.addEventListener('click', () => {
+            changesSheet.classList.add('show');
+            sheetOverlay.style.display = 'block';
+            sheetOverlay.classList.add('show');
+        });
+
+        if (changesClose) changesClose.addEventListener('click', () => {
+            changesSheet.classList.remove('show');
+            sheetOverlay.classList.remove('show');
+            setTimeout(() => { sheetOverlay.style.display = 'none'; }, 300);
+        });
+
+        if (acceptAllBtn) acceptAllBtn.addEventListener('click', async () => {
+            if (currentAcceptSelector) {
+                await fetch('/click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ selector: currentAcceptSelector })
+                });
+                changesSheet.classList.remove('show');
+                sheetOverlay.classList.remove('show');
+                setTimeout(() => { sheetOverlay.style.display = 'none'; }, 300);
+            }
+        });
+
+        if (rejectAllBtn) rejectAllBtn.addEventListener('click', async () => {
+            if (currentRejectSelector) {
+                await fetch('/click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ selector: currentRejectSelector })
+                });
+                changesSheet.classList.remove('show');
+                sheetOverlay.classList.remove('show');
+                setTimeout(() => { sheetOverlay.style.display = 'none'; }, 300);
+            }
+        });
+
+        if (terminalChip) terminalChip.addEventListener('click', () => {
+            terminalSheet.classList.add('show');
+            sheetOverlay.style.display = 'block';
+            sheetOverlay.classList.add('show');
+        });
+
+        if (terminalClose) terminalClose.addEventListener('click', () => {
+            terminalSheet.classList.remove('show');
+            sheetOverlay.classList.remove('show');
+            setTimeout(() => { sheetOverlay.style.display = 'none'; }, 300);
+        });
+
+        if (artifactsChip) artifactsChip.addEventListener('click', () => {
+            artifactsSheet.classList.add('show');
+            sheetOverlay.style.display = 'block';
+            sheetOverlay.classList.add('show');
+        });
+
+        if (artifactsClose) artifactsClose.addEventListener('click', () => {
+            artifactsSheet.classList.remove('show');
+            sheetOverlay.classList.remove('show');
+            setTimeout(() => { sheetOverlay.style.display = 'none'; }, 300);
+        });
+
+        async function sendTerminalCommand() {
+            const cmd = terminalInput.value.trim();
+            if (!cmd || !currentTerminalSelector) return;
+
+            await fetch('/click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ selector: currentTerminalSelector })
+            });
+
+            await fetch('/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ message: cmd + '\n' })
+            });
+
+            terminalInput.value = '';
+        }
+
+        if (terminalSendBtn) terminalSendBtn.addEventListener('click', sendTerminalCommand);
+        if (terminalInput) terminalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendTerminalCommand();
+        });
+
+        if (modeChip) modeChip.addEventListener('click', () => { if (currentModeSelector) sendClickToServer(currentModeSelector, currentModeText, 'mode'); });
+        if (modelChip) modelChip.addEventListener('click', () => { if (currentModelSelector) sendClickToServer(currentModelSelector, currentModelText, 'model'); });
+
         let pendingMenuClick = false;
         let lastClickedType = ''; // 'mode' or 'model'
 
@@ -1605,23 +1780,17 @@
         // ============================================================================
 
         function updateControls(html) {
-            // Force update if we are expecting a menu click, or if HTML changed
             if (html === lastControlsHtml && !pendingMenuClick) return;
             lastControlsHtml = html;
             const temp = document.createElement('div');
             temp.innerHTML = html;
 
-            // 1. Gather all potential buttons
-            const allBtns = Array.from(temp.querySelectorAll('button, [role="button"], [class*="button"]'));
+            const allBtns = Array.from(temp.querySelectorAll('button, [role="button"], .button, [class*="button"]'));
 
-            // 2. Scan for Mode and Model buttons based on DOM structure
-            // Discovery-based detection (more robust than tag-only)
+            // Mode & Model
             const modeBtn = allBtns.find(btn => {
                 const text = (btn.innerText || btn.textContent || '').trim();
-                // Exact matches for current mode labels
                 if (text === 'Planning' || text === 'Fast' || text === 'Agent') {
-                    // Ensure it's not the model button which might also contain these words in some contexts
-                    // Mode buttons typically have no ID or a very generic one, whereas Model buttons often have headlessui IDs
                     return !btn.id || !btn.id.includes('headlessui');
                 }
                 return false;
@@ -1631,47 +1800,110 @@
                 if (btn === modeBtn) return false;
                 const id = btn.id || '';
                 const text = (btn.innerText || btn.textContent || '').trim();
-                // Model button usually has a headlessui ID and contains model-like keywords
                 const isModelId = id.includes('headlessui-popover-button') || id.includes('headlessui-menu-button');
                 const hasModelText = text.includes('Gemini') || text.includes('Claude') || text.includes('Pro') || text.includes('Sonnet') || text.includes('gpt');
-
                 return isModelId && hasModelText;
             });
-
-            // 4. Update UI & Hide Legacy Buttons
-            let hideSelectors = [];
 
             if (modeBtn) {
                 const text = (modeBtn.innerText || modeBtn.textContent || '').trim();
                 modeVal.textContent = text;
-                modeVal.style.color = '#3b82f6';
+                modeChip.style.display = "flex";
                 currentModeSelector = getUniqueSelector(modeBtn);
                 currentModeText = text;
-                nativeStatusBar.style.display = 'flex';
-                hideSelectors.push(currentModeSelector);
+            } else {
+                modeChip.style.display = "none";
             }
 
             if (modelBtn) {
                 const text = (modelBtn.innerText || modelBtn.textContent || '').trim();
                 modelVal.textContent = text;
+                modelChip.style.display = "flex";
                 currentModelSelector = getUniqueSelector(modelBtn);
                 currentModelText = text;
-                nativeStatusBar.style.display = 'flex';
-                hideSelectors.push(currentModelSelector);
+            } else {
+                modelChip.style.display = "none";
             }
 
-            // Sync legacy hider style
-            let hiderStyle = document.getElementById('legacy-hider-style');
-            if (!hiderStyle) {
-                hiderStyle = document.createElement('style');
-                hiderStyle.id = 'legacy-hider-style';
-                document.head.appendChild(hiderStyle);
-            }
-            if (hideSelectors.length > 0) {
-                hiderStyle.textContent = hideSelectors.map(sel => `${sel} { opacity: 0 !important; pointer-events: none !important; }`).join('\n');
+            // Terminal
+            const terminalEl = temp.querySelector('.xterm-rows, .terminal, [class*="terminal"]');
+            if (terminalEl) {
+                terminalChip.style.display = 'flex';
+                const rows = Array.from(terminalEl.querySelectorAll('.xterm-rows > div, div')).map(row => row.innerText || row.textContent).join('\n');
+                terminalContent.textContent = rows;
+                currentTerminalSelector = getUniqueSelector(terminalEl);
+                terminalContent.scrollTop = terminalContent.scrollHeight;
+            } else {
+                terminalChip.style.display = 'none';
             }
 
-            // 3. Detect Open Panels (Popovers & Menus)
+            // Changes
+            const acceptBtn = allBtns.find(btn => {
+                const text = (btn.innerText || '').toLowerCase();
+                return text.includes('accept') || text.includes('apply');
+            });
+            const rejectBtn = allBtns.find(btn => {
+                const text = (btn.innerText || '').toLowerCase();
+                return text.includes('reject') || text.includes('discard');
+            });
+
+            if (acceptBtn || rejectBtn) {
+                changesFab.style.display = 'flex';
+                currentAcceptSelector = acceptBtn ? getUniqueSelector(acceptBtn) : '';
+                currentRejectSelector = rejectBtn ? getUniqueSelector(rejectBtn) : '';
+                const changeIndicators = Array.from(temp.querySelectorAll('.monaco-list-row.change, [class*="change"], [class*="diff"]')).filter(el => !el.closest('button'));
+                const changeCount = Math.max(changeIndicators.length, (acceptBtn ? 1 : 0));
+                changesBadge.textContent = changeCount;
+                changesList.innerHTML = '';
+                if (changeIndicators.length > 0) {
+                    changeIndicators.forEach(ci => {
+                        const item = document.createElement('div');
+                        item.className = 'option-item';
+                        item.style.fontSize = '12px';
+                        item.innerHTML = `📝 ${ci.innerText || ci.textContent || 'Modified file'}`;
+                        changesList.appendChild(item);
+                    });
+                } else {
+                    changesList.innerHTML = `<div style="color: var(--text-dim); text-align: center; padding: 20px;">${changeCount} pending changes detected</div>`;
+                }
+            } else {
+                changesFab.style.display = 'none';
+            }
+
+            // Artifacts
+            const artifactContainers = Array.from(temp.querySelectorAll('.artifact-container, [class*="artifact-container"], [data-testid*="artifact-container"]'));
+            if (artifactContainers.length > 0) {
+                artifactsChip.style.display = 'flex';
+                artifactsVal.textContent = artifactContainers.length;
+                artifactsList.innerHTML = '';
+                artifactContainers.forEach(a => {
+                    const title = (a.querySelector('[class*="title"], [class*="header"]') || {}).innerText || 'Artifact';
+                    const div = document.createElement('div');
+                    div.className = 'option-item';
+                    div.innerHTML = `📦 ${title}`;
+                    div.addEventListener('click', () => {
+                        sendClickToServer(getUniqueSelector(a), title);
+                        artifactsSheet.classList.remove('show');
+                        sheetOverlay.classList.remove('show');
+                        setTimeout(() => { sheetOverlay.style.display = 'none'; }, 300);
+                    });
+                    artifactsList.appendChild(div);
+                });
+            } else {
+                artifactsChip.style.display = 'none';
+            }
+
+            nativeStatusBar.style.display = (modeBtn || modelBtn || terminalEl || artifactContainers.length > 0) ? 'flex' : 'none';
+
+            // Sync legacy hider
+            let hideSelectors = [];
+            if (currentModeSelector) hideSelectors.push(currentModeSelector);
+            if (currentModelSelector) hideSelectors.push(currentModelSelector);
+            let hiderStyle = document.getElementById('legacy-hider-style') || document.createElement('style');
+            hiderStyle.id = 'legacy-hider-style';
+            if (!hiderStyle.parentElement) document.head.appendChild(hiderStyle);
+            hiderStyle.textContent = hideSelectors.map(sel => `${sel} { opacity: 0 !important; pointer-events: none !important; }`).join('\n');
+
             if (!pendingMenuClick) return;
 
             const panelSelectors = [
