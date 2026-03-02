@@ -6,36 +6,56 @@ import util from 'util';
 const CAPTURE_SCRIPT = `(() => {
     try {
         const containerSelectors = [
+            '.sidebar',
+            '[id="workbench.parts.sidebar"]',
             '#cascade',
             '.titlebar.cascade-panel-open',
             '.cascade-bar',
-            '[id="workbench.parts.titlebar"]'
+            '[id="workbench.parts.titlebar"]',
+            '.main-container',
+            '[role="main"]'
         ];
         
-        let cascade;
+        let elements = [];
+        const seen = new Set();
+
         for (const sel of containerSelectors) {
-            cascade = document.querySelector(sel);
-            if (cascade) break;
+            const found = document.querySelectorAll(sel);
+            found.forEach(el => {
+                if (!seen.has(el)) {
+                    elements.push(el);
+                    seen.add(el);
+                }
+            });
         }
         
-        let cleanHtml;
-        if (cascade) {
-            const clone = cascade.cloneNode(true);
-            const input = clone.querySelector('[contenteditable="true"]')?.closest('div[id^="cascade"] > div');
-            if (input) input.remove();
-            cleanHtml = clone.outerHTML;
+        let cleanHtml = "";
+        if (elements.length > 0) {
+            const wrapper = document.createElement("div");
+            wrapper.id = "ag-captured-wrapper";
+
+            elements.forEach(el => {
+                const clone = el.cloneNode(true);
+                // Selective cleanup of clones to avoid cluttering mobile view
+                clone.querySelectorAll('[contenteditable="true"], textarea, input:not([type="hidden"]), button:has(svg.lucide-mic), button:has(svg.lucide-send)').forEach(node => {
+                    const target = node.closest('div[id^="cascade"] > div') || node;
+                    if (target && target.parentNode) target.remove();
+                });
+                wrapper.appendChild(clone);
+            });
+            cleanHtml = wrapper.outerHTML;
         } else {
             cleanHtml = document.body.outerHTML;
         }
         
-        // FAST MODE: Just use outerHTML. Shadow DOM support temporarily disabled to fix mobile hang.
         const fullBodyHtml = document.body.outerHTML;
         
-        let allCSS = '';
+        let allCSS = "";
         for (const sheet of document.styleSheets) {
             try {
                 for (const rule of sheet.cssRules) {
-                    allCSS += rule.cssText + '\\n';
+                    allCSS += rule.cssText + "
+";
                 }
             } catch (e) { }
         }
@@ -51,26 +71,13 @@ const CAPTURE_SCRIPT = `(() => {
             color: bodyStyles.color,
             fontFamily: bodyStyles.fontFamily,
             themeClass: document.documentElement.className,
-            themeAttr: document.documentElement.getAttribute('data-theme') || '',
-            colorScheme: rootStyles.colorScheme || 'dark',
+            themeAttr: document.documentElement.getAttribute("data-theme") || "",
+            colorScheme: rootStyles.colorScheme || "dark",
             bodyBg: bodyStyles.backgroundColor,
             bodyColor: bodyStyles.color
         };
     } catch (e) {
-        const err = (() => {
-            try {
-                const anyErr = e && typeof e === 'object' ? e : {};
-                return {
-                    name: anyErr && anyErr.name ? String(anyErr.name) : undefined,
-                    message: anyErr && anyErr.message ? String(anyErr.message) : undefined,
-                    stack: anyErr && anyErr.stack ? String(anyErr.stack) : undefined,
-                    toString: String(e)
-                };
-            } catch {
-                return { toString: 'error serializing error' };
-            }
-        })();
-        return { error: err };
+        return { error: e.toString() };
     }
 })()`;
 
